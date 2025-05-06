@@ -4,22 +4,22 @@
 
 * The streampower diffusion model
 The streampower-diffusion model is as follows
-$$\frac{\partial z}{\partial t}=D\nabla^2 z - KA^m|\nabla z|^n+U$$
+$\frac{\partial z}{\partial t}=D\nabla^2 z - KA^m|\nabla z|^n+U$
 Where
 | Parameter   | Symbol       | Unit          |
 |-------------+--------------+---------------|
-| Diffusivity | $$D$$        | $$\text{m}^2\text{a}^{-1}$$ |
-| Slope       | $$\nabla z$$ | 1             |
-| Elevation   |  $$z$$       | $$\text{m}$$  |
-| Streampower Efficiency | $$K$$ | $$\text{m}^{1-2m}\text{a}^{-1}$$ |
-| Upstream Area | $$A$$ | $$\text{m}^2$$ |
-| Streampower m | $$m$$ | 1 |
-| Streampower n | $$n$$ | 1 |
-| Uplift | $$U$$ | $$\text{m}\text{a}^{-1}$$|
+| Diffusivity | $D$        | $\text{m}^2\text{a}^{-1}$ |
+| Slope       | $\nabla z$ | 1             |
+| Elevation   |  $z$       | $\text{m}$  |
+| Streampower Efficiency | $K$ | $\text{m}^{1-2m}\text{a}^{-1}$ |
+| Upstream Area | $A$ | $\text{m}^2$ |
+| Streampower m | $m$ | 1 |
+| Streampower n | $n$ | 1 |
+| Uplift | $U$ | $\text{m}\text{a}^{-1}$|
 
 
 * Non dimensionalizing the streampower diffusion model.
-The two parameters we vary across our model runs are $$K$$, for streampower efficeincy, and $$D$$ for diffusivity.  Lets see how varying these parameters changes our model runs.  We store our model run information in a database so let's pull the parameters for our model into a dataframe
+The two parameters we vary across our model runs are $K$, for streampower efficeincy, and $D$ for diffusivity.  Lets see how varying these parameters changes our model runs.  We store our model run information in a database so let's pull the parameters for our model into a dataframe
 
 #+begin_src python :results table :return df.head()
 import numpy as np
@@ -93,7 +93,7 @@ D_transect_fig.savefig("figs/D_transect.png")
 #+RESULTS:
 [[file:figs/D_transect.png]]
 
-This gives you a sense of what changing $$K$$ and $$D$$ does to these landscapes.  We also can look at the ratio, $$\frac{K}{D}$$.
+This gives you a sense of what changing $K$ and $D$ does to these landscapes.  We also can look at the ratio, $\frac{K}{D}$.
 #+begin_src python :results file :export both
 one_seed_df['K/D'] = one_seed_df['k']/one_seed_df['D']
 one_seed_df.sort_values(by=['K/D'], inplace=True)
@@ -118,31 +118,31 @@ training_notebook.org
 [[file:figs/KD_similar.png]]
 
 * Non dimensionalization and the Peclet Number
-We want to non dimensionalize our equation and parameters to get a better sense of the relative importance of stream vs diffusive processes.  Non dimensionalizing involves determining appropriate scales for the dimensions involved in the equation.  In nondimensionalizations done previously, scales have involved the values of $$D$$ and $$K$$ in the simulation [[cite:&theodoratosScalingSimilarityStreampower2018]], or the the relief of the model run output[[cite:&perronControlsSpacingFirstorder2008]] however all three of these values will vary across our model runs (and our chosen $$m$$ value means that $$K$$ is the wrong units anyway).
+We want to non dimensionalize our equation and parameters to get a better sense of the relative importance of stream vs diffusive processes.  Non dimensionalizing involves determining appropriate scales for the dimensions involved in the equation.  In nondimensionalizations done previously, scales have involved the values of $D$ and $K$ in the simulation [[cite:&theodoratosScalingSimilarityStreampower2018]], or the the relief of the model run output[[cite:&perronControlsSpacingFirstorder2008]] however all three of these values will vary across our model runs (and our chosen $m$ value means that $K$ is the wrong units anyway).
 
-We will need our scales, for this problem a characteristic length scale, $$\ell$$, a height scale $$\zeta$$ and a time scale $$T$$.  We will discuss some possibilities for what these will be after a generic nondimensionalizing.  We will notate dimensionaless variables with an astrix.
-$$z^*=\frac{z}{\zeta}$$
-$$x^*=\frac{x}{\ell}$$
-$$t^*=\frac{t}{T}$$
-$$A^*=\frac{A}{\ell^2}$$
+We will need our scales, for this problem a characteristic length scale, $\ell$, a height scale $\zeta$ and a time scale $T$.  We will discuss some possibilities for what these will be after a generic nondimensionalizing.  We will notate dimensionaless variables with an astrix.
+$z^*=\frac{z}{\zeta}$
+$x^*=\frac{x}{\ell}$
+$t^*=\frac{t}{T}$
+$A^*=\frac{A}{\ell^2}$
 Now we trivially rearrange to get
-$$z=z^*\zeta$$
-$$x=x^*\ell$$
-$$t=t^*T$$
-$$A=A^*\ell^2$$
+$z=z^*\zeta$
+$x=x^*\ell$
+$t=t^*T$
+$A=A^*\ell^2$
 
 We then substitute this into our original equation
-$$\frac{\zeta}{T}\frac{\partial z^*}{\partial t^*}=D\frac{\zeta}{\ell^2}\frac{\partial^2 z^*}{\partial x^*^2}+K\ell^{2m}A^*^m\frac{\zeta^n}{\ell^n}\left|\frac{\partial z^*}{\partial x^*}\right|^n+U$$
+$\frac{\zeta}{T}\frac{\partial z^*}{\partial t^*}=D\frac{\zeta}{\ell^2}\frac{\partial^2 z^*}{\partial x^*^2}+K\ell^{2m}A^*^m\frac{\zeta^n}{\ell^n}\left|\frac{\partial z^*}{\partial x^*}\right|^n+U$
 
-$$\frac{\partial z^*}{\partial t^*}=D\frac{T\zeta}{\zeta\ell^2}\frac{\partial^2 z^*}{\partial x^*^2}+K\ell^{2m}A^*^m\frac{T\zeta^n}{\zeta\ell^n}\left|\frac{\partial z^*}{\partial x^*}\right|^n+\frac{T}{\zeta}U$$
-$$\frac{\partial z^*}{\partial t^*}=\frac{T}{\ell^2}D\frac{\partial^2 z^*}{\partial x^*^2}+\ell^{2m-n}T\zeta^{n-1}K\ell^{2m}A^*^m\left|\frac{\partial z^*}{\partial x^*}\right|^n+\frac{T}{\zeta}U$$
+$\frac{\partial z^*}{\partial t^*}=D\frac{T\zeta}{\zeta\ell^2}\frac{\partial^2 z^*}{\partial x^*^2}+K\ell^{2m}A^*^m\frac{T\zeta^n}{\zeta\ell^n}\left|\frac{\partial z^*}{\partial x^*}\right|^n+\frac{T}{\zeta}U$
+$\frac{\partial z^*}{\partial t^*}=\frac{T}{\ell^2}D\frac{\partial^2 z^*}{\partial x^*^2}+\ell^{2m-n}T\zeta^{n-1}K\ell^{2m}A^*^m\left|\frac{\partial z^*}{\partial x^*}\right|^n+\frac{T}{\zeta}U$
 We now have naturally emerging values for $D^*$, $K^*$, and $U^*$:
-$$D^*=D\frac{T}{\ell^2}$$
-$$K^*=K\ell^{2m-n}\zeta^{n-1}T$$
-$$U^*=U\frac{T}{\zeta}$$
+$D^*=D\frac{T}{\ell^2}$
+$K^*=K\ell^{2m-n}\zeta^{n-1}T$
+$U^*=U\frac{T}{\zeta}$
 Now we can also determine a Peclet number, $\text{Pe}$
-\(\text{\Pe}=\frac{K^*}{D^*}=\frac{K\ell^{2(m+1)-n}}{D\zeta^{1-n}}\)
-All that remains is choosing apropriate length and height scales.  In [[cite:&perronControlsSpacingFirstorder2008]] they choose the horizintal length of the drainage basin for the lenght scale, $\ell$, which for these model runs is half of the grid, or 250m.  For the vertial length scale, $\zeta$ they chose the relief of the landscape.  However, what if we want our height scale to be constant across our model runs, what height scale should we choose?  We have a variety of options.  We could choose the total ammount of forced uplift or erosion, $$U\times\text{runtime}$$.  We could also choose the equilibrium hillslope height for diffusion, $\frac{U}{2D}\ell^2$. In [[cite:&theodoratosScalingSimilarityStreampower2018]] they use \(\sqrt{\frac{D}{K}}\) as $\ell$ and $\frac{U}{K}$ as $\zeta$.  This is due to a choice of $m=1/2, n=1$.  Since for us, $m=0.3$ an equivelent would be $\ell=\left(\frac{D}{K}\right)^{\frac{1}{1.6}$ and $\zeta=(\frac{U}{K})^{\frac{1}{0.6}}$
+$\text{\Pe}=\frac{K^*}{D^*}=\frac{K\ell^{2(m+1)-n}}{D\zeta^{1-n}}$
+All that remains is choosing apropriate length and height scales.  In [[cite:&perronControlsSpacingFirstorder2008]] they choose the horizintal length of the drainage basin for the lenght scale, $\ell$, which for these model runs is half of the grid, or 250m.  For the vertial length scale, $\zeta$ they chose the relief of the landscape.  However, what if we want our height scale to be constant across our model runs, what height scale should we choose?  We have a variety of options.  We could choose the total ammount of forced uplift or erosion, $U\times\text{runtime}$.  We could also choose the equilibrium hillslope height for diffusion, $\frac{U}{2D}\ell^2$. In [[cite:&theodoratosScalingSimilarityStreampower2018]] they use \(\sqrt{\frac{D}{K}}\) as $\ell$ and $\frac{U}{K}$ as $\zeta$.  This is due to a choice of $m=1/2, n=1$.  Since for us, $m=0.3$ an equivelent would be $\ell=\left(\frac{D}{K}\right)^{\frac{1}{1.6}$ and $\zeta=(\frac{U}{K})^{\frac{1}{0.6}}$
 We can use all of these, and compare the results on our final Peclet Number.
 
 #+begin_src python :results output
