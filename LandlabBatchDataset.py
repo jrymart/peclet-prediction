@@ -26,10 +26,10 @@ class LandlabBatchDataset:
 
     def __getitem__(self, idx):
         run_name = self.runs[idx]
-        data_path = os.path.join(self.dataset_dir, f"{run_name.npz}")
+        data_path = os.path.join(self.dataset_dir, f"{run_name.npy}")
         self.cursor.execute(f"{self.label_query} WHERE model_run_id = \"{run_name}\"")
         label = self.cursor.fetchone()
-        data_array = np.load(data_path)[run_name]
+        data_array = np.load(data_path)
         data_array = data_array.astype(np.float32)[self.trim:-self.trim, self.trim:-self.trim]
         return data_array, label
 

@@ -113,9 +113,9 @@ KD_fig.savefig("figs/KD_similar.png")
 plt.close(KD_fig)
 'figs/KD_similar.png'
 #+end_src
-
+training_notebook.org
 #+RESULTS:
-[[file:]]
+[[file:figs/KD_similar.png]]
 
 * Non dimensionalization and the Peclet Number
 We want to non dimensionalize our equation and parameters to get a better sense of the relative importance of stream vs diffusive processes.  Non dimensionalizing involves determining appropriate scales for the dimensions involved in the equation.  In nondimensionalizations done previously, scales have involved the values of $$D$$ and $$K$$ in the simulation [[cite:&theodoratosScalingSimilarityStreampower2018]], or the the relief of the model run output[[cite:&perronControlsSpacingFirstorder2008]] however all three of these values will vary across our model runs (and our chosen $$m$$ value means that $$K$$ is the wrong units anyway).
@@ -144,29 +144,28 @@ Now we can also determine a Peclet number, $\text{Pe}$
 \(\text{\Pe}=\frac{K^*}{D^*}=\frac{K\ell^{2(m+1)-n}}{D\zeta^{1-n}}\)
 All that remains is choosing apropriate length and height scales.  In [[cite:&perronControlsSpacingFirstorder2008]] they choose the horizintal length of the drainage basin for the lenght scale, $\ell$, which for these model runs is half of the grid, or 250m.  For the vertial length scale, $\zeta$ they chose the relief of the landscape.  However, what if we want our height scale to be constant across our model runs, what height scale should we choose?  We have a variety of options.  We could choose the total ammount of forced uplift or erosion, $$U\times\text{runtime}$$.  We could also choose the equilibrium hillslope height for diffusion, $\frac{U}{2D}\ell^2$. In [[cite:&theodoratosScalingSimilarityStreampower2018]] they use \(\sqrt{\frac{D}{K}}\) as $\ell$ and $\frac{U}{K}$ as $\zeta$.  This is due to a choice of $m=1/2, n=1$.  Since for us, $m=0.3$ an equivelent would be $\ell=\left(\frac{D}{K}\right)^{\frac{1}{1.6}$ and $\zeta=(\frac{U}{K})^{\frac{1}{0.6}}$
 We can use all of these, and compare the results on our final Peclet Number.
-#+begin_src python
+
+#+begin_src python :results output
 def perron_L():
     return 250
 def theodoratos_L(D,K):
     return (D/K)**(1/1.6)
 def perron_H(name):
-    array = np.load(f"{data_dir}/name.npy")[name]
+    array = np.load(f"{data_dir}/{name}.npy")
     return np.max(array)-np.min(array)
 def uplift_H():
     return 1e-4*3e6
 def diffusion_H(D):
-    return (1e-4/(2*D))250**2
+    return (1e-4/(2*D))*250**2
 def theodoratos_H(K):
     return (1e-4/K)**(1/0.6)
-
 def peclet(D,K,H,L,m,n):
     return (K*(L**(2*(m+1)-n)))/(D*H**(1-n))
 #+END_SRC
 
 #+RESULTS:
 
-#+begin_src python
-peclet_df = df.copy()
+#+begin_src python :results output table :return df.head()
 df['perron_L'] = df.apply(lambda x: perron_L(), axis=1)
 df['theodoratos_L'] = df.apply(lambda x: theodoratos_L(x['D'], x['k']), axis=1)
 df['perron_H'] = df.apply(lambda x: perron_H(x['model_run_id']), axis=1)
@@ -177,19 +176,30 @@ H_vals = ['perron_H', 'uplift_H', 'diffusion_H', 'theodoratos_H']
 L_vals = ['perron_L', 'theodoratos_L']
 for L in L_vals:
     for H in H_vals:
-        df[f'{L}-{H}'] = df.apply(lambda x: peclet(x['D'], x['k'], x[H], x[K], 0.3, 0.6))
+        df[f'Pe: {L}-{H}'] = df.apply(lambda x: peclet(x['D'],  x['k'], x[H], x[L], 0.3, 0.6), axis=1)
+
 #+END_SRC
 
 #+RESULTS:
 
 #+begin_src python :results file :exports both
-fig, axs = plt.subplots(len(L_vals), len(H_vals))
+fig, axs = plt.subplots(len(L_vals), len(H_vals), figsize=(10,5))
 for i, ax in np.ndenumerate(axs):
-    ax.hist(df[f'{L_vals[i[0]]}-{H_vals[i[1]]}'])
+    ax.hist(df[f'Pe: {L_vals[i[0]]}-{H_vals[i[1]]}'])
+    axs[0,i[1]].set_title(H_vals[i[1]])
+    axs[i[0],0].set_ylabel(L_vals[i[0]], size='large')
+axs[0,0].set_title(r'$\zeta=\text{relief}$')
+axs[0,1].set_title(r'$\zeta=U\times\text{runtime}$')
+axs[0,2].set_title(r'$\zeta=\sqrt{\frac{D}{K}}$')
+axs[0,3].set_title(r'$\zeta=\left(\frac{U}{K}\right)^{\frac{1}{0.6}}$')
+axs[0,0].set_ylabel(r'$\ell=250m$')
+axs[1,0].set_ylabel(r'$\ell=\left(\frac{D}{K}\right)^{\frac{1}{1.6}}$')
+fig.suptitle('Pe Values for Various Length and Height Scales')
+fig.tight_layout()
 fig.savefig('figs/peclet_dists.png')
 plt.close(fig)
 'figs/peclet_dists.png'
 #+END_SRC
 
 #+RESULTS:
-[[file:]]
+[[file:figs/peclet_dists.png]]
