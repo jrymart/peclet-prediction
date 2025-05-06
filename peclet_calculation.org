@@ -132,10 +132,13 @@ $t=t^*T$
 $A=A^*\ell^2$
 
 We then substitute this into our original equation
+
 $\frac{\zeta}{T}\frac{\partial z^*}{\partial t^*}=D\frac{\zeta}{\ell^2}\frac{\partial^2 z^*}{\partial x^*^2}+K\ell^{2m}A^*^m\frac{\zeta^n}{\ell^n}\left|\frac{\partial z^*}{\partial x^*}\right|^n+U$
 
 $\frac{\partial z^*}{\partial t^*}=D\frac{T\zeta}{\zeta\ell^2}\frac{\partial^2 z^*}{\partial x^*^2}+K\ell^{2m}A^*^m\frac{T\zeta^n}{\zeta\ell^n}\left|\frac{\partial z^*}{\partial x^*}\right|^n+\frac{T}{\zeta}U$
+
 $\frac{\partial z^*}{\partial t^*}=\frac{T}{\ell^2}D\frac{\partial^2 z^*}{\partial x^*^2}+\ell^{2m-n}T\zeta^{n-1}K\ell^{2m}A^*^m\left|\frac{\partial z^*}{\partial x^*}\right|^n+\frac{T}{\zeta}U$
+
 We now have naturally emerging values for $D^*$, $K^*$, and $U^*$:
 $D^*=D\frac{T}{\ell^2}$
 $K^*=K\ell^{2m-n}\zeta^{n-1}T$
