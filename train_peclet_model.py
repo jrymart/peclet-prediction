@@ -1,6 +1,8 @@
 from LandlabBatchDataset import build_datasets_from_db
 from ThreeLayerCNNRegressor import ThreeLayerCNNRegressor
 import torch
+import pandas as pd
+import matplotlib.pyplot as plt
 
 class PecletModelTrainer:
     """
@@ -9,7 +11,7 @@ class PecletModelTrainer:
 
     def __init__(self, db_path, dataset_dir, label_query="SELECT peclet FROM model_run_outputs",
                  filter_query="", split_by="model_param.seed", train_fraction=.8, trim=5,
-                 batch_size=64, self.epeochs=5, learning_rate=0.001):
+                 batch_size=64, epochs=5, learning_rate=0.001):
         """
         Initialize the trainer with a path to the SQLite database.
         """
@@ -20,6 +22,8 @@ class PecletModelTrainer:
         self.split_by = split_by
         self.train_fraction = train_fraction
         self.trim = trim
+        self.epochs = epochs
+        self.learning_rate = learning_rate
         self.model = ThreeLayerCNNRegressor()
         self.train_ds, self.test_ds = build_datasets_from_db(
             db_path,
@@ -94,4 +98,7 @@ class PecletModelTrainer:
                 true_labels += labels.tolist()
                 names += names.tolist()
         average_loss = total_loss / len(self.test_loader)
+        self.test_df = pd.DataFrame({'predictions': [float(p) for p in predictions],
+                                     'true_labels': [float(p) for p in true_labels],
+                                     'names': names})
         print(f"Test Loss: {average_loss}")

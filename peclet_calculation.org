@@ -1,0 +1,195 @@
+#+title: Peclet Calculation
+#+PROPERTY: header-args:python :python /home/jo/micromamba/envs/torchland/bin/python :session peclet
+#+latex_header: \usepackage{mathrsfs}
+
+* The streampower diffusion model
+The streampower-diffusion model is as follows
+$$\frac{\partial z}{\partial t}=D\nabla^2 z - KA^m|\nabla z|^n+U$$
+Where
+| Parameter   | Symbol       | Unit          |
+|-------------+--------------+---------------|
+| Diffusivity | $$D$$        | $$\text{m}^2\text{a}^{-1}$$ |
+| Slope       | $$\nabla z$$ | 1             |
+| Elevation   |  $$z$$       | $$\text{m}$$  |
+| Streampower Efficiency | $$K$$ | $$\text{m}^{1-2m}\text{a}^{-1}$$ |
+| Upstream Area | $$A$$ | $$\text{m}^2$$ |
+| Streampower m | $$m$$ | 1 |
+| Streampower n | $$n$$ | 1 |
+| Uplift | $$U$$ | $$\text{m}\text{a}^{-1}$$|
+
+
+* Non dimensionalizing the streampower diffusion model.
+The two parameters we vary across our model runs are $$K$$, for streampower efficeincy, and $$D$$ for diffusivity.  Lets see how varying these parameters changes our model runs.  We store our model run information in a database so let's pull the parameters for our model into a dataframe
+
+#+begin_src python :results table :return df.head()
+import numpy as np
+import sqlite3
+import matplotlib.pyplot as plt
+import pandas as pd
+
+connection = sqlite3.Connection("model_runs.db")
+cursor = connection.cursor()
+df = pd.read_sql_query("SELECT \"model_param.streampower.k\", \"model_param.streampower.m\",\"model_param.streampower.n\",\"model_param.diffuser.D\", \"model_param.seed\", \"model_param.baselevel.uplift_rate\", model_run_id FROM model_run_params", connection)
+df = df.rename(columns=lambda x: x.split('.')[-1])
+#+end_src
+
+#+RESULTS:
+|   |       k |   m |   n |                    D | seed | uplift_rate | model_run_id                         |
+|---+---------+-----+-----+----------------------+------+-------------+--------------------------------------|
+| 0 | 0.00015 | 0.3 | 0.7 |                0.005 | 10.0 |       0.001 | 4e8a6aa8-3d27-4fb5-a964-30ee0eda4125 |
+| 1 | 0.00015 | 0.3 | 0.7 | 0.005517241379310345 | 10.0 |       0.001 | 9c2a7812-b080-43ee-bf05-8dc492d11efa |
+| 2 | 0.00015 | 0.3 | 0.7 |  0.00603448275862069 | 10.0 |       0.001 | bc1eb7d8-9459-4306-aa00-e239311fab0a |
+| 3 | 0.00015 | 0.3 | 0.7 | 0.006551724137931035 | 10.0 |       0.001 | 9e15892b-3e80-4c40-b478-ec0dcf8f4a9a |
+| 4 | 0.00015 | 0.3 | 0.7 |  0.00706896551724138 | 10.0 |       0.001 | 59b5c29e-956b-43ae-9be5-13488999bc8a |
+
+
+Now for some examples will stick to one seed, that is model runs that have the exact same random initial topography
+#+begin_src python :results file :exports both
+data_dir = "model_run_topography"
+seed = df['seed'][0]
+Ds = df['D'].unique()
+Ks = df['k'].unique()
+steady_D = Ds[int(len(Ds)/2)]
+steady_K = Ks[int(len(Ks)/2)]
+one_seed_df = df[df['seed']==seed]
+K_transect_df = one_seed_df[one_seed_df['D']==steady_D][::6]
+D_transect_df = one_seed_df[one_seed_df['k']==steady_K][::6]
+K_transect_fig, axs = plt.subplots(1,5, figsize=(15,6))
+for i, row in enumerate(K_transect_df.iterrows()):
+    row = row[1]
+    name = row['model_run_id']
+    array = np.load(f"{data_dir}/{name}.npy")#[name]
+    K_val = row['k']
+    dem = axs[i].imshow(array, cmap='gray')
+    axs[i].set_title(f"K={K_val:.3e}")
+    K_transect_fig.colorbar(dem, ax=axs[i])
+K_transect_fig.suptitle(f"Varying K with D {steady_D:.3e}")
+K_transect_fig.tight_layout()
+K_transect_fig.savefig('figs/K_transect.png')
+plt.close(K_transect_fig)
+'figs/K_transect.png'
+#+end_src
+
+#+RESULTS:
+[[file:figs/K_transect.png]]
+
+
+#+begin_src python :results file :exports both
+D_transect_fig, axs = plt.subplots(1,5,figsize=(15,6))
+for i, row in enumerate(D_transect_df.iterrows()):
+    row = row[1]
+    name = row['model_run_id']
+    array = np.load(f"{data_dir}/{name}.npy")
+    D_val = row['D']
+    dem = axs[i].imshow(array, cmap='gray')
+    axs[i].set_title(f"D={D_val:.3e}")
+    D_transect_fig.colorbar(dem, ax=axs[i])
+D_transect_fig.suptitle(f"Varying D with K {steady_K:.3e}")
+D_transect_fig.tight_layout()
+D_transect_fig.savefig("figs/D_transect.png")
+'figs/D_transect.png'
+#+end_src
+
+#+RESULTS:
+[[file:figs/D_transect.png]]
+
+This gives you a sense of what changing $$K$$ and $$D$$ does to these landscapes.  We also can look at the ratio, $$\frac{K}{D}$$.
+#+begin_src python :results file :export both
+one_seed_df['K/D'] = one_seed_df['k']/one_seed_df['D']
+one_seed_df.sort_values(by=['K/D'], inplace=True)
+sim_KD_df = one_seed_df[(one_seed_df['K/D']>0.08) & (one_seed_df['K/D']<0.081)]
+KD_fig, axs = plt.subplots(1,5, figsize=(15,6))
+#print(one_seed_df[:5])
+for i, row in enumerate(sim_KD_df.iterrows()):
+    row = row[1]
+    name = row['model_run_id']
+    array = np.load(f"{data_dir}/{name}.npy")
+    dem = axs[i].imshow(array, cmap='gray')
+    axs[i].set_title(f"K: {row['k']:.3e}, D: {row['D']:.3e}\n K/D: {row['K/D']:.3e}")
+    KD_fig.colorbar(dem, ax=axs[i])
+KD_fig.suptitle("5 Similar Landscapes")
+KD_fig.tight_layout()
+KD_fig.savefig("figs/KD_similar.png")
+plt.close(KD_fig)
+'figs/KD_similar.png'
+#+end_src
+
+#+RESULTS:
+[[file:]]
+
+* Non dimensionalization and the Peclet Number
+We want to non dimensionalize our equation and parameters to get a better sense of the relative importance of stream vs diffusive processes.  Non dimensionalizing involves determining appropriate scales for the dimensions involved in the equation.  In nondimensionalizations done previously, scales have involved the values of $$D$$ and $$K$$ in the simulation [[cite:&theodoratosScalingSimilarityStreampower2018]], or the the relief of the model run output[[cite:&perronControlsSpacingFirstorder2008]] however all three of these values will vary across our model runs (and our chosen $$m$$ value means that $$K$$ is the wrong units anyway).
+
+We will need our scales, for this problem a characteristic length scale, $$\ell$$, a height scale $$\zeta$$ and a time scale $$T$$.  We will discuss some possibilities for what these will be after a generic nondimensionalizing.  We will notate dimensionaless variables with an astrix.
+$$z^*=\frac{z}{\zeta}$$
+$$x^*=\frac{x}{\ell}$$
+$$t^*=\frac{t}{T}$$
+$$A^*=\frac{A}{\ell^2}$$
+Now we trivially rearrange to get
+$$z=z^*\zeta$$
+$$x=x^*\ell$$
+$$t=t^*T$$
+$$A=A^*\ell^2$$
+
+We then substitute this into our original equation
+$$\frac{\zeta}{T}\frac{\partial z^*}{\partial t^*}=D\frac{\zeta}{\ell^2}\frac{\partial^2 z^*}{\partial x^*^2}+K\ell^{2m}A^*^m\frac{\zeta^n}{\ell^n}\left|\frac{\partial z^*}{\partial x^*}\right|^n+U$$
+
+$$\frac{\partial z^*}{\partial t^*}=D\frac{T\zeta}{\zeta\ell^2}\frac{\partial^2 z^*}{\partial x^*^2}+K\ell^{2m}A^*^m\frac{T\zeta^n}{\zeta\ell^n}\left|\frac{\partial z^*}{\partial x^*}\right|^n+\frac{T}{\zeta}U$$
+$$\frac{\partial z^*}{\partial t^*}=\frac{T}{\ell^2}D\frac{\partial^2 z^*}{\partial x^*^2}+\ell^{2m-n}T\zeta^{n-1}K\ell^{2m}A^*^m\left|\frac{\partial z^*}{\partial x^*}\right|^n+\frac{T}{\zeta}U$$
+We now have naturally emerging values for $D^*$, $K^*$, and $U^*$:
+$$D^*=D\frac{T}{\ell^2}$$
+$$K^*=K\ell^{2m-n}\zeta^{n-1}T$$
+$$U^*=U\frac{T}{\zeta}$$
+Now we can also determine a Peclet number, $\text{Pe}$
+\(\text{\Pe}=\frac{K^*}{D^*}=\frac{K\ell^{2(m+1)-n}}{D\zeta^{1-n}}\)
+All that remains is choosing apropriate length and height scales.  In [[cite:&perronControlsSpacingFirstorder2008]] they choose the horizintal length of the drainage basin for the lenght scale, $\ell$, which for these model runs is half of the grid, or 250m.  For the vertial length scale, $\zeta$ they chose the relief of the landscape.  However, what if we want our height scale to be constant across our model runs, what height scale should we choose?  We have a variety of options.  We could choose the total ammount of forced uplift or erosion, $$U\times\text{runtime}$$.  We could also choose the equilibrium hillslope height for diffusion, $\frac{U}{2D}\ell^2$. In [[cite:&theodoratosScalingSimilarityStreampower2018]] they use \(\sqrt{\frac{D}{K}}\) as $\ell$ and $\frac{U}{K}$ as $\zeta$.  This is due to a choice of $m=1/2, n=1$.  Since for us, $m=0.3$ an equivelent would be $\ell=\left(\frac{D}{K}\right)^{\frac{1}{1.6}$ and $\zeta=(\frac{U}{K})^{\frac{1}{0.6}}$
+We can use all of these, and compare the results on our final Peclet Number.
+#+begin_src python
+def perron_L():
+    return 250
+def theodoratos_L(D,K):
+    return (D/K)**(1/1.6)
+def perron_H(name):
+    array = np.load(f"{data_dir}/name.npy")[name]
+    return np.max(array)-np.min(array)
+def uplift_H():
+    return 1e-4*3e6
+def diffusion_H(D):
+    return (1e-4/(2*D))250**2
+def theodoratos_H(K):
+    return (1e-4/K)**(1/0.6)
+
+def peclet(D,K,H,L,m,n):
+    return (K*(L**(2*(m+1)-n)))/(D*H**(1-n))
+#+END_SRC
+
+#+RESULTS:
+
+#+begin_src python
+peclet_df = df.copy()
+df['perron_L'] = df.apply(lambda x: perron_L(), axis=1)
+df['theodoratos_L'] = df.apply(lambda x: theodoratos_L(x['D'], x['k']), axis=1)
+df['perron_H'] = df.apply(lambda x: perron_H(x['model_run_id']), axis=1)
+df['uplift_H'] = df.apply(lambda x: uplift_H(), axis=1)
+df['diffusion_H'] = df.apply(lambda x: diffusion_H(x['D']), axis=1)
+df['theodoratos_H'] = df.apply(lambda x: theodoratos_H(x['k']), axis=1)
+H_vals = ['perron_H', 'uplift_H', 'diffusion_H', 'theodoratos_H']
+L_vals = ['perron_L', 'theodoratos_L']
+for L in L_vals:
+    for H in H_vals:
+        df[f'{L}-{H}'] = df.apply(lambda x: peclet(x['D'], x['k'], x[H], x[K], 0.3, 0.6))
+#+END_SRC
+
+#+RESULTS:
+
+#+begin_src python :results file :exports both
+fig, axs = plt.subplots(len(L_vals), len(H_vals))
+for i, ax in np.ndenumerate(axs):
+    ax.hist(df[f'{L_vals[i[0]]}-{H_vals[i[1]]}'])
+fig.savefig('figs/peclet_dists.png')
+plt.close(fig)
+'figs/peclet_dists.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:]]
