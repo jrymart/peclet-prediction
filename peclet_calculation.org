@@ -193,7 +193,7 @@ for i, ax in np.ndenumerate(axs):
     axs[i[0],0].set_ylabel(L_vals[i[0]], size='large')
 axs[0,0].set_title(r'$\zeta=\text{relief}$')
 axs[0,1].set_title(r'$\zeta=U\times\text{runtime}$')
-axs[0,2].set_title(r'$\zeta=\sqrt{\frac{D}{K}}$')
+axs[0,2].set_title(r'$\zeta=\frac{U}{2D}(250\text{m})^2$')
 axs[0,3].set_title(r'$\zeta=\left(\frac{U}{K}\right)^{\frac{1}{0.6}}$')
 axs[0,0].set_ylabel(r'$\ell=250m$')
 axs[1,0].set_ylabel(r'$\ell=\left(\frac{D}{K}\right)^{\frac{1}{1.6}}$')

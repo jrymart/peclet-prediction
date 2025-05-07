@@ -67,7 +67,7 @@ class PecletModelTrainer:
             if verbose:
                 print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item()}")
 
-    def save_weights(self, path):
+    def save_weights(self, path)
         """
         Save the model weights to a file.
         """
@@ -97,6 +97,8 @@ class PecletModelTrainer:
                 predictions += outputs.tolist()
                 true_labels += labels.tolist()
                 names += names.tolist()
+        predictions = [p*self.test_loader.dataset.label_std + self.test_loader.dataset.label_mean for p in predictions]
+        true_labels = [l*self.test_loader.dataset.label_std + self.test_loader.dataset.label_mean for l in true_labels]
         average_loss = total_loss / len(self.test_loader)
         self.test_df = pd.DataFrame({'predictions': [float(p) for p in predictions],
                                      'true_labels': [float(p) for p in true_labels],
