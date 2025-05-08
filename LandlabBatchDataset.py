@@ -1,14 +1,17 @@
 import sqlite3
 import os
 import numpy as np
+from torch.utils.data import Dataset
+from torchvision.transforms import ToTensor, Lambda
+import torch
 
-class LandlabBatchDataset:
+class LandlabBatchDataset(Dataset):
     """
     A dataset for sets of landlab runs generated from a landlab batch run (github.com/jrymart/landlab-batcher).
     """
 
     def __init__(self, db_path, dataset_dir, label_query, filter_query="", trim=5, normalize=True, inputs_mean=None,
-                 inputs_std=None, label_mean=None, label_std=None):
+                 inputs_std=None, labels_mean=None, labels_std=None):
         """
         Initialize the dataset with a path to the SQLite database.
         """
@@ -22,73 +25,104 @@ class LandlabBatchDataset:
         self.runs = [r[0] for r in self.cursor.fetchall()]
         self.trim = trim
         self.normalize = normalize
-        cursor.execute(f"SELECT model_run_id FROM model_run_params")
+        self.cursor.execute(f"SELECT model_run_id FROM model_run_params")
         runs_for_normalization = [r[0] for r in self.cursor.fetchall()]
-        if normalize:
-            if inputs_mean is not None or inputs_std is not None:
-                self.inputs_mean = inputs_mean
-                self.inputs_std = inputs_std
-            else:
-                input_total_sum = 0.0
-                input_total_sum_sq = 0.0
-                input_total_count = 0
-                for run_name in runs_for_normalization:
-                    data_path = os.path.join(self.dataset_dir, f"{run_name}.npy")
-                    data_array = np.load(data_path)
-                    data_array = data_array.astype(np.float32)[self.trim:-self.trim, self.trim:-self.trim]
-                    input_total_sum += np.sum(data_array)
-                    input_total_sum_sq += np.sum(np.square(data_array))
-                    input_total_count += data_array.size
-                self.inputs_mean = input_total_sum / input_total_count
-                variance = (input_total_sum_sq / input_total_count) - np.square(self.inputs_mean)
-                if variance < 0 and np.isclose(variance, 0):
-                    variance = 0.0
-                self.inputs_std = np.sqrt(variance)
-                if self.inputs_std <1e-7:
-                    print("Warning: inputs_std is very small, setting to 1.0")
-                    self.inputs_std = 1.0
-            if label_mean is not None or label_std is not None:
-                self.label_mean = label_mean
-                self.label_std = label_std
-            else:
-                self.cursor.execute(f"{self.label_query} WHERE model_run_id IN ?", (runs_for_normalization,))
-                labels = self.cursor.fetchall()
-                all_labels = [l[0] for l in labels]
-                all_labels_array = np.array(all_labels,dtype=np.float32)
-                self.label_mean = np.mean(all_labels_array)
-                self.label_std = np.std(all_labels_array)
-                if self.label_std < 1e-7:
-                    print("Warning: label_std is very small, setting to 1.0")
-                    self.label_std = 1.0
-
+        self.normalize = normalize
+        self.inputs_mean = inputs_mean
+        self.inputs_std = inputs_std
+        self.labels_mean = labels_mean
+        self.labels_std = labels_std
+        self.transform = ToTensor()
 
     def __len__(self):
         return len(self.runs)
 
     def __getitem__(self, idx):
         run_name = self.runs[idx]
-        data_path = os.path.join(self.dataset_dir, f"{run_name.npy}")
+        data_path = os.path.join(self.dataset_dir, f"{run_name}.npy")
         self.cursor.execute(f"{self.label_query} WHERE model_run_id = \"{run_name}\"")
-        label = self.cursor.fetchone()
+        label = self.cursor.fetchone()[0]
         data_array = np.load(data_path)
         data_array = data_array.astype(np.float32)[self.trim:-self.trim, self.trim:-self.trim]
-        data_array = (data_array - self.inputs_mean) / self.inputs_std
-        label = (label - self.label_mean) / self.label_std
-        return data_array, label
+        if self.normalize:
+            data_array = (data_array - self.inputs_mean) / self.inputs_std
+            label = (label - self.labels_mean) / self.labels_std
+        return self.transform(data_array), torch.tensor(label, dtype=torch.float32)
 
-def build_datasets_from_db(db_path, dataset_dir, label_query, filter_query="", split_by="model_param.seed", train_fraction=.8, trim=5):
+def get_dataset_stats(db_path, dataset_dir, filter_query="", trim=5):
+    """
+    Get the mean and std of the dataset.
+    """
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT model_run_id FROM model_run_params {filter_query}")
+    runs = [r[0] for r in cursor.fetchall()]
+    sum = 0.0
+    sum_sq = 0.0
+    count = 0
+    for run_name in runs:
+        data_path = os.path.join(dataset_dir, f"{run_name}.npy")
+        data_array = np.load(data_path)
+        data_array = data_array.astype(np.float32)[trim:-trim, trim:-trim]
+        sum += np.sum(data_array)
+        sum_sq += np.sum(np.square(data_array))
+        count += data_array.size
+    mean = sum / count
+    variance = (sum_sq / count) - np.square(mean)
+    if variance < 0 and np.isclose(variance, 0):
+        variance = 0
+    std = np.sqrt(variance)
+    if std < 1e-7:
+        print("Warning: std is very small, setting to 1")
+        std = 1
+    return mean, std
+
+def get_label_stats(db_path, label_query, filter_query=""):
+    """
+    Get the mean and std of the labels.
+    """
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT model_run_id FROM model_run_params {filter_query}")
+    runs = [r[0] for r in cursor.fetchall()]
+    labels = []
+    limit = conn.getlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER)
+    for i in range(0, len(runs), limit):
+        current_chunk_runs = runs[i:i + limit]
+        placeholders = ', '.join(['?'] * len(current_chunk_runs))
+        cursor.execute(f"{label_query} WHERE model_run_id IN ({placeholders})", current_chunk_runs)
+        current_labels = [l[0] for l in cursor.fetchall()]
+        labels += current_labels
+    labels = np.array(labels)
+    mean = np.mean(labels)
+    std= np.std(labels)
+    if std < 1e-7:
+        print("Warning: std is very small, setting to 1")
+        std = 1
+    return mean, std
+
+def build_datasets_from_db(db_path, dataset_dir, label_query, filter_query="", split_by="model_param.seed",
+                           train_fraction=.8, trim=5, normalize=True, inputs_mean=None,inputs_std=None,
+                           labels_mean=None, labels_std=None, **kwargs):
     """
     Create a LandlabBatchDataset instance.
     """
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute(f"SELECT DISTINCT \"{split_by}\" FROM runs {filter_query}")
+    cursor.execute(f"SELECT DISTINCT \"{split_by}\" FROM model_run_params {filter_query}")
     categories = [r[0] for r in cursor.fetchall()]
     split = int((len(categories) * train_fraction))
     train_categories = categories[:split]
     test_categories = categories[split:]
     train_filter = f"WHERE \"{split_by}\" IN ({', '.join([str(c) for c in train_categories])})"
     test_filter = f"WHERE \"{split_by}\" IN ({', '.join([str(c) for c in test_categories])})"
-    train_ds = LandlabBatchDataset(db_path, dataset_dir, label_query, train_filter, trim)
-    test_ds = LandlabBatchDataset(db_path, dataset_dir, label_query, test_filter, trim)
+    if normalize:
+        if labels_mean is None or labels_std is None:
+            labels_mean, labels_std = get_label_stats(db_path, label_query, train_filter)
+        if inputs_mean is None or inputs_std is None:
+            inputs_mean, inputs_std = get_dataset_stats(db_path, dataset_dir, train_filter, trim)
+    train_ds = LandlabBatchDataset(db_path, dataset_dir, label_query, train_filter, trim, normalize, inputs_mean,
+                                   inputs_std, labels_mean, labels_std)
+    test_ds = LandlabBatchDataset(db_path, dataset_dir, label_query, test_filter, trim, normalize, inputs_mean,
+                                   inputs_std, labels_mean, labels_std)
     return train_ds, test_ds
