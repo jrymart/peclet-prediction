@@ -6,19 +6,19 @@ This notebook trains two convolutional neural networks to infer the Peclet numbe
 of 2D streampower-diffusion landscape evolution models.  The purpose of this notebook
 is to make it easy to replicate the work done in this project in Google Colab
 
-#+BEGIN_SRC python :results output
+#+BEGIN_SRC jupyter-python :results output
 import torch
 from train_peclet_model import PecletModelTrainer
 from ThreeLayerCNNRegressor import ThreeLayerCNNRegressor
 import json
 #+END_SRC
 
-#+BEGIN_SRC python :tangle "python.py"
+#+BEGIN_SRC jupyter-python :tangle "python.py"
 with open('full_dataset_statistics.json', 'r') as f:
     stats = json.load(f)
 #+End_SRC
 
-#+BEGIN_SRC python :results output
+#+BEGIN_SRC jupyter-python :results output
 torch.manual_seed(0)
 db_path = 'model_runs.db'
 data_path = 'model_run_topography'
@@ -40,7 +40,7 @@ ax.set_title('Performance of Model with Seed 0')
 run_one_resuts.savefig('run_one_results.png')
 #+END_SRC
 
-#+BEGIN_SRC python :results output
+#+BEGIN_SRC jupyter-python :results output
 torch.manual_seed(10)
 trainer_two = PecletModelTrainer(db_path,
                                  data_path,

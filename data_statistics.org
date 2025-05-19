@@ -68,5 +68,5 @@ print(f"Labels Std: {labels_std}")
 : Inputs Mean: 15.579729238706953
 : Inputs Std: 29.096489786029963
 :
-: Labels Mean: 2489.2467653382982
-: Labels Std: 2296.916676443043
+: Labels Mean: 7.288967318721593
+: Labels Std: 1.1873556332682709

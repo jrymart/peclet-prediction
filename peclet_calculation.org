@@ -234,9 +234,12 @@ except sqlite3.OperationalError as e:
         raise
 connection.commit()
 df_to_merge.to_sql('temp_peclet', connection, index=False)
+# how do i make this set two columns from the temp_peclet database, peclet, and log peclet
 cursor.execute("""
 UPDATE model_run_outputs
-SET peclet = (SELECT t.peclet FROM temp_peclet t WHERE t.model_run_id = model_run_outputs.model_run_id)
+SET
+    peclet = (SELECT t.peclet FROM temp_peclet t WHERE t.model_run_id = model_run_outputs.model_run_id),
+    log_peclet = (SELECT t.log_peclet FROM temp_peclet t WHERE t.model_run_id = model_run_outputs.model_run_id)
 WHERE EXISTS (SELECT 1 FROM temp_peclet t WHERE t.model_run_id = model_run_outputs.model_run_id)
 """)
 connection.commit()
@@ -245,6 +248,7 @@ connection.commit()
 #+end_src
 
 #+RESULTS:
+: None
 
 #+begin_src python :results file :exports both
 def normalize(array):
