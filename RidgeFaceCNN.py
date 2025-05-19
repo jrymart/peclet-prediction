@@ -55,9 +55,18 @@ class RidgeFaceCNN(nn.Module):
         self.fc1 = nn.LazyLinear(100)
         self.fc2 = nn.Linear(100, 10)
         self.fc3 = nn.Linear(10, 1)
-        with torch.no_grad():
-            self.conv1.weight = nn.Parameter(torch.stack(RIDGE_WEIGHTS+FACE_WEIGHTS, dim=0), requires_grad=False)
 
+    def _initialize_conv1_weights(self):
+        combined_weights = torch.cat(RIDGE_WEIGHTS+FACE_WEIGHTS, dim=0)
+        expected_shape = self.conv1.weight.shape
+        if combined_weights.shape != expected_shape:
+            raise ValueError(f"Expected shape {expected_shape}, but got {combined_weights.shape}")
+        with torch.no_grad():
+            self.conv1.weight.data.copy_(combined_weights)
+            if self.conv1.bias is not None:
+                self.conv1.bias.data.zero_()
+                self.conv1.bias.requires_grad = False
+        self.conv1.weight.requires_grad = False
 
     def forward(self, x):
         x = self.conv1(x)

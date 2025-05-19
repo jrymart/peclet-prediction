@@ -1,0 +1,60 @@
+#+title: Other Correlations
+#+PROPERTY: header-args:python :python /home/jo/micromamba/envs/torchland/bin/python :session other_methods
+
+We have seen that a neural network can invert the streampower diffusion model, but is there another parameter that can be used for the same correlation?  Valley spacing isn't unique but maybe there is something less meaningful.
+
+#+begin_src python
+import numpy as np
+import matplotlib.pyplot as plt
+import sqlite3
+import pandas as pd
+#+end_src
+
+#+RESULTS:
+: None
+
+#+begin_src python :results output
+connection = sqlite3.Connection("model_runs.db")
+cursor = connection.cursor()
+df = pd.read_sql_query("SELECT \"model_param.streampower.k\", \"model_param.streampower.m\",\"model_param.streampower.n\",\"model_param.diffuser.D\", \"model_param.seed\", \"model_param.baselevel.uplift_rate\", model_run_id FROM model_run_params", connection)
+df = df.rename(columns=lambda x: x.split('.')[-1])
+data_dir = "model_ruen_topography"
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :results output
+def get_topo_metrics(name):
+    dem = np.load(f"{data_dir}/{name}.npz")[name]
+    return np.mean(dem), np.var(dem), np.std(dem)
+
+means = []
+varis = []
+stds = []
+for name in df['model_run_id']:
+    mean, var, std = get_topo_metrics(name)
+    means.append(mean)
+    varis.append(var)
+    stds.append(std)
+df['elev_mean'] = means
+df['elev_var'] = varis
+df['elev_std'] = stds
+df['K/D'] = df['k']/df['D']
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :results file :export both
+fig, axs = plt.subplots(1,3, figsize=(8,8))
+axs[0].scatter(df['K/D'], np.log(df['elev_mean']))
+axs[1].scatter(df['K/D'], np.log(df['elev_var']))
+axs[2].scatter(df['K/D'], np.log(df['elev_std']))
+fig.savefig('figs/elev_compare.png')
+'figs/elev_compare.png'
+#+end_src
+
+#+RESULTS:
+[[file:figs/elev_compare.png]]
+
+
+At least very simple elevation metrics are not uniquely related to K/D

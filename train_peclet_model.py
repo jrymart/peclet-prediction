@@ -23,7 +23,7 @@ class PecletModelTrainer:
         self.trim = trim
         self.epochs = epochs
         self.learning_rate = learning_rate
-        self.model = model
+        self.model = model()
         self.train_ds, self.test_ds = build_datasets_from_db(
             db_path,
             dataset_dir,

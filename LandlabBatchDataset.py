@@ -46,7 +46,7 @@ class LandlabBatchDataset(Dataset):
         data_array = data_array.astype(np.float32)[self.trim:-self.trim, self.trim:-self.trim]
         if self.normalize:
             data_array = (data_array - self.inputs_mean) / self.inputs_std
-            label = (label - self.labels_mean) / self.labels_std
+            label =(label - self.labels_mean) / self.labels_std
         return self.transform(data_array), torch.tensor(label, dtype=torch.float32)
 
 def get_dataset_stats(db_path, dataset_dir, filter_query="", trim=5):

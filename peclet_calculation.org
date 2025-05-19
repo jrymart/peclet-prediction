@@ -113,6 +113,10 @@ KD_fig.savefig("figs/KD_similar.png")
 plt.close(KD_fig)
 'figs/KD_similar.png'
 #+end_src
+
+#+RESULTS:
+[[file:figs/KD_similar.png]]
+
 training_notebook.org
 #+RESULTS:
 [[file:figs/KD_similar.png]]
@@ -206,3 +210,85 @@ plt.close(fig)
 
 #+RESULTS:
 [[file:figs/peclet_dists.png]]
+
+#+begin_src python
+peclet_to_merge = "Pe: perron_L-perron_H"
+df_to_merge = df[["model_run_id", peclet_to_merge]].rename(columns={peclet_to_merge: 'peclet'})
+df_to_merge['log_peclet'] = np.log(df_to_merge['peclet'])
+,#+end_src python
+
+,#+begin_src python
+try:
+    cursor.execute("ALTER TABLE model_run_outputs ADD COLUMN peclet REAL")
+except sqlite3.OperationalError as e:
+    if 'duplicate column name' in str(e):
+        print("peclet column already in db, skipping table alteration")
+    else:
+        raise
+try:
+    cursor.execute("ALTER TABLE model_run_outputs ADD COLUMN log_peclet REAL")
+except sqlite3.OperationalError as e:
+    if 'duplicate column name' in str(e):
+        print('log_peclet column already in db, skipping table alteration')
+    else:
+        raise
+connection.commit()
+df_to_merge.to_sql('temp_peclet', connection, index=False)
+cursor.execute("""
+UPDATE model_run_outputs
+SET peclet = (SELECT t.peclet FROM temp_peclet t WHERE t.model_run_id = model_run_outputs.model_run_id)
+WHERE EXISTS (SELECT 1 FROM temp_peclet t WHERE t.model_run_id = model_run_outputs.model_run_id)
+""")
+connection.commit()
+cursor.execute("DROP TABLE temp_peclet")
+connection.commit()
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :results file :exports both
+def normalize(array):
+    mean = np.mean(array)
+    std = np.std(array)
+    return (array - mean)/std
+
+
+cursor.execute("SELECT peclet FROM model_run_outputs")
+peclets = np.array([p[0] for p in cursor.fetchall()])
+cursor.execute("SELECT \"model_param.streampower.k\"/ \"model_param.diffuser.D\" FROM model_run_params")
+KDs = np.array([kd[0] for kd in cursor.fetchall()])
+one_over_peclets = 1/peclets
+log_peclets = np.log(peclets)
+norm_peclets = normalize(peclets)
+norm_KDs = normalize(peclets)
+norm_oo_peclets = normalize(one_over_peclets)
+norm_log_peclets = normalize(log_peclets)
+peclet_dist_fig, axs = plt.subplots(2,4, figsize=(15,5))
+axs[0,0].hist(peclets)
+axs[0,1].hist(1/peclets)
+axs[0,2].hist(np.log(peclets))
+axs[0,3].hist(KDs, color='red')
+axs[0,0].set_title('Distribution of Pe')
+axs[0,1].set_title(r'Distribution of $\frac{1}{\text{Pe}}$')
+axs[0,2].set_title('Distribution of log(Pe)')
+axs[0,3].set_title(r'Distribution of $\frac{K}{D}$')
+axs[1,0].hist(norm_peclets)
+axs[1,1].hist(norm_oo_peclets)
+axs[1,2].hist(norm_log_peclets)
+axs[1,3].hist(norm_KDs, color='red')
+axs[1,0].set_title('Distribution of normalized Pe')
+axs[1,1].set_title(r'Distribution of normalized $\frac{1}{\text{Pe}}$')
+axs[1,2].set_title('Distribution of normalized log Pe')
+axs[1,3].set_title(r'Distribution of normalized $\frac{K}{D}$')
+peclet_dist_fig.tight_layout()
+peclet_dist_fig.savefig('figs/peclet_distributions.png')
+plt.close(peclet_dist_fig)
+'figs/peclet_distributions.png'
+#+end_src
+
+#+RESULTS:
+[[file:figs/peclet_distributions.png]]
+
+#+begin_src python
+
+#+end_src python bb

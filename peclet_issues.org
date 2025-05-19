@@ -1,0 +1,3 @@
+#+title: Peclet Issues
+
+So far changing networks to predict Peclet
