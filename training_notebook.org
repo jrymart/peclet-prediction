@@ -6,6 +6,10 @@ This notebook trains two convolutional neural networks to infer the Peclet numbe
 of 2D streampower-diffusion landscape evolution models.  The purpose of this notebook
 is to make it easy to replicate the work done in this project in Google Colab
 
+#+BEGIN_SRC jupyter-python
+!git clone https://github.com/jrymart/peclet-prediction.git
+#+END_SRC
+
 #+BEGIN_SRC jupyter-python :results output
 import torch
 from train_peclet_model import PecletModelTrainer
