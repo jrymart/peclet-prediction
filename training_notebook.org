@@ -8,6 +8,8 @@ is to make it easy to replicate the work done in this project in Google Colab
 
 #+BEGIN_SRC jupyter-python
 !git clone https://github.com/jrymart/peclet-prediction.git
+import os
+os.chdir('peclet-prediction')
 #+END_SRC
 
 #+BEGIN_SRC jupyter-python :results output
