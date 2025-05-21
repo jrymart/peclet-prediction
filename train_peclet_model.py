@@ -8,7 +8,7 @@ class PecletModelTrainer:
     A class to train a model on Peclet number data.
     """
 
-    def __init__(self, db_path, dataset_dir, model, label_query="SELECT peclet FROM model_run_outputs",
+    def __init__(self, db_path, dataset_dir, model, label_query="SELECT log_peclet FROM model_run_outputs",
                  filter_query="", split_by="model_param.seed", train_fraction=.8, trim=5,
                  batch_size=64, epochs=5, learning_rate=0.001, **kwargs):
         """
@@ -56,13 +56,13 @@ class PecletModelTrainer:
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         criterion = torch.nn.MSELoss()
-
+        self.model.train()
         for epoch in range(epochs):
-            for i, data in enumerate(self.train_loader):
-                data, labels, = data
+            for i, batch_content in enumerate(self.train_loader):
+                inputs, labels = batch_content
                 optimizer.zero_grad()
-                outputs = self.model(data)
-                loss = criterion(outputs, labels)
+                outputs = self.model(inputs)
+                loss = criterion(outputs, labels.unsqueeze(1))
                 loss.backward()
                 optimizer.step()
             if verbose:
@@ -94,7 +94,7 @@ class PecletModelTrainer:
             for i, data in enumerate(self.test_loader,0):
                 data, labels = data
                 outputs = self.model(data)
-                loss = criterion(outputs, labels)
+                loss = criterion(outputs, labels.unsqueeze(1))
                 total_loss += loss.item()
                 predictions += outputs
                 true_labels += labels

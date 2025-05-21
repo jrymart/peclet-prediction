@@ -27,7 +27,7 @@ input_total_sum = 0.0
 input_total_sum_sq = 0.0
 input_total_count = 0
 for run in runs:
-    data_array = np.load(os.path.join(data_path, f"{run}.npy"))
+    data_array = np.load(os.path.join(data_path, f"{run}.npy"))[5:-5,5:-5]
     input_total_sum += np.sum(data_array)
     input_total_sum_sq += np.sum(np.square(data_array))
     input_total_count += data_array.size
