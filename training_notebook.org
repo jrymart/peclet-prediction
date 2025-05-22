@@ -17,6 +17,7 @@ import torch
 from train_peclet_model import PecletModelTrainer
 from ThreeLayerCNNRegressor import ThreeLayerCNNRegressor
 import json
+import matplotlib.pyplot as plt
 #+END_SRC
 
 #+BEGIN_SRC jupyter-python :tangle "python.py"
@@ -34,14 +35,16 @@ trainer_one = PecletModelTrainer(db_path,
                                  "SELECT log_peclet FROM model_run_outputs",
                                  epochs=50,
                                  learning_rate=0.0001,
-                                 **stats)
+                                 ,**stats)
 trainer_one.train()
+#+END_SRC
+#+BEGIN_SRC jupyter-python :results output
 trainer_one.evaluate()
 trainer_one.save_weights('peclet_predictor_run_one.pt')
 run_one_results, ax = plt.subplots()
 ax.scatterplot(trainer_one.test_df['true_labels'], trainer_one.test_df['predictions'])
 ax.set_xlabel('True Log Pe')
-ax.set_yabel('Inferred Log Pe')
+ax.set_ylabel('Inferred Log Pe')
 ax.set_title('Performance of Model with Seed 0')
 run_one_resuts.savefig('run_one_results.png')
 #+END_SRC
@@ -54,8 +57,10 @@ trainer_two = PecletModelTrainer(db_path,
                                  "SELECT log_peclet FROM model_run_outputs",
                                  epochs=50
                                  learning_rate=0.0001,
-                                 **stats)
+                                 ,**stats)
 trainer_two.train()
+#+END_SRC
+#+BEGIN_SRC jupyter-python :results output
 trainer_two.evaluate()
 trainer_two.save_weights('peclet_predictor_run_two.pt')
 run_two_results, ax = plt.subplots()
