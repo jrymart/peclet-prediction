@@ -43,7 +43,10 @@ class LandlabBatchDataset(Dataset):
         self.cursor.execute(f"{self.label_query} WHERE model_run_id = \"{run_name}\"")
         label = self.cursor.fetchone()[0]
         data_array = np.load(data_path)
-        data_array = data_array.astype(np.float32)[self.trim:-self.trim, self.trim:-self.trim]
+        if data_array.ndim == 2:
+            data_array = data_array.astype(np.float32)[self.trim:-self.trim, self.trim:-self.trim]
+        else:
+            data_array = data_array.astype(np.float32)[:, self.trim:-self.trim, self.trim:-self.trim]
         if self.normalize:
             data_array = (data_array - self.inputs_mean) / self.inputs_std
             label =(label - self.labels_mean) / self.labels_std
@@ -57,16 +60,28 @@ def get_dataset_stats(db_path, dataset_dir, filter_query="", trim=5):
     cursor = conn.cursor()
     cursor.execute(f"SELECT model_run_id FROM model_run_params {filter_query}")
     runs = [r[0] for r in cursor.fetchall()]
-    sum = 0.0
-    sum_sq = 0.0
-    count = 0
+    data_array = np.load(os.path.join(dataset_dir, f"{runs[0]}.npy"))
+    if data_array.ndim ==3:
+        sum = np.zeros(data_array.shape[0], dtype=np.float32)
+        sum_sq = np.zeros(data_array.shape[0], dtype=np.float32)
+        count = np.zeros(data_array.shape[0], dtype=np.int64)
+    else:
+        sum = 0.0
+        sum_sq = 0.0
+        count = 0
     for run_name in runs:
         data_path = os.path.join(dataset_dir, f"{run_name}.npy")
         data_array = np.load(data_path)
-        data_array = data_array.astype(np.float32)[trim:-trim, trim:-trim]
-        sum += np.sum(data_array)
-        sum_sq += np.sum(np.square(data_array))
-        count += data_array.size
+        if data_array.ndim ==3:
+            data_array = data_array.astype(np.float32)[:, trim:-trim, trim:-trim]
+            sum += np.sum(data_array, axis=(1, 2))
+            sum_sq += np.sum(np.square(data_array), axis=(1, 2))
+            count += data_array.shape[1] * data_array.shape[2]
+        else:
+            data_array = data_array.astype(np.float32)[trim:-trim, trim:-trim]
+            sum += np.sum(data_array)
+            sum_sq += np.sum(np.square(data_array))
+            count += data_array.size
     mean = sum / count
     variance = (sum_sq / count) - np.square(mean)
     if variance < 0 and np.isclose(variance, 0):
@@ -75,6 +90,11 @@ def get_dataset_stats(db_path, dataset_dir, filter_query="", trim=5):
     if std < 1e-7:
         print("Warning: std is very small, setting to 1")
         std = 1
+        if data_array.ndim == 3:
+            std = np.ones_like(mean)
+    if data_array.ndim == 3:
+        mean = mean[:, np.newaxis, np.newaxis]
+        std = std[:, np.newaxis, np.newaxis]
     return mean, std
 
 def get_label_stats(db_path, label_query, filter_query=""):
