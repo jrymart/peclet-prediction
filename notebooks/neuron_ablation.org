@@ -1,0 +1,4 @@
+#+title: Neuron Ablation
+#+PROPERTY: header-args :python /home/jo/micromamba/envs/torchland/bin/python :session statistics
+* Ablating Neurons
+This neural network has a lot of different neurons containing a lot of different patterns, but are they all meaningful?  We can ablate them to determine

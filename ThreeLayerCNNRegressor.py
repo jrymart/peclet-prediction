@@ -3,9 +3,9 @@ import torch
 
 class ThreeLayerCNNRegressor(nn.Module):
 
-    def __init__(self):
+    def __init__(self, channels=1):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 10, 3)
+        self.conv1 = nn.Conv2d(channels, 10, 3)
         self.relu1 = nn.ReLU()
         self.maxpool1 = nn.MaxPool2d(2)
         self.conv2 = nn.Conv2d(10, 20, 5)

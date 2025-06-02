@@ -1,0 +1,70 @@
+#+title: Peclet Visualization
+#+PROPERTY: header-args:python /home/jo/micromaba/envs/torchland/bin/python :session peclet_viz
+
+#+BEGIN_SRC python
+import sqlite3
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+#+END_SRC
+
+#+RESULTS:
+: None
+
+#+BEGIN_SRC python :results table :return pdf.head()
+db_path = "../model_runs.db"
+np_path = "../model_run_topography"
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
+pdf = pd.read_sql("SELECT \"model_param.seed\", o.model_run_id, peclet FROM model_run_params r INNER JOIN model_run_outputs o ON r.model_run_id = o.model_run_id", conn)
+#+END_SRC
+
+#+RESULTS:
+|   | model_param.seed | model_run_id                         |             peclet |
+|---+------------------+--------------------------------------+--------------------|
+| 0 |             10.0 | 4e8a6aa8-3d27-4fb5-a964-30ee0eda4125 | 190.97765173539105 |
+| 1 |             10.0 | 9c2a7812-b080-43ee-bf05-8dc492d11efa | 174.47938379689285 |
+| 2 |             10.0 | bc1eb7d8-9459-4306-aa00-e239311fab0a | 161.14390119371316 |
+| 3 |             10.0 | 9e15892b-3e80-4c40-b478-ec0dcf8f4a9a |  150.7258753489083 |
+| 4 |             10.0 | 59b5c29e-956b-43ae-9be5-13488999bc8a |  141.3702295848354 |
+
+#+BEGIN_SRC python :results file :exports both
+pdf = pdf[pdf['model_param.seed']==10]
+num_samples =9
+peclets = pdf['peclet'].unique()
+peclets.sort()
+lin_peclets = peclets[np.searchsorted(peclets,
+                              pdf['peclet'].quantile(np.linspace(0, 1, num_samples)).unique())]
+np.append(lin_peclets,np.max(peclets))
+target_geo_values = np.geomspace(pdf['peclet'].min(), pdf['peclet'].max(), num_samples)
+geom_peclets = peclets[np.searchsorted(peclets, target_geo_values)]
+geom_peclets.append(np.max(peclets))
+fig, axs = plt.subplots(2, num_samples+1, figsize=(20, 10))
+for i in range(num_samples+1):
+    lin_peclet = lin_peclets[i]
+    geo_peclet = geom_peclets[i]
+    geo_ax = axs[1, i]
+    geo_ax.set_title(f"Pe: {geo_peclet:.3e}", fontsize=18)
+    geo_name = pdf[pdf['peclet'] == geo_peclet]['model_run_id'].values[0]
+    geo_topo = np.load(f"{np_path}/{geo_name}.npy")
+    geo_ax.imshow(geo_topo, cmap='gray', interpolation='nearest')
+    lin_ax = axs[0, i]
+    lin_ax.set_title(f"Pe: {lin_peclet:.3e}", fontsize=18)
+    lin_name = pdf[pdf['peclet'] == lin_peclet]['model_run_id'].values[0]
+    lin_topo = np.load(f"{np_path}/{lin_name}.npy")
+    lin_ax.imshow(lin_topo, cmap='gray', interpolation='nearest')
+    # disable axis labesl
+    lin_ax.set_xticks([])
+    lin_ax.set_yticks([])
+    geo_ax.set_xticks([])
+    geo_ax.set_yticks([])
+fig.tight_layout()
+fig.savefig("figs/peclet_spacings.png")
+'figs/peclet_spacings.png'
+
+
+
+#+END_SRC
+
+#+RESULTS:
+[[file:]]

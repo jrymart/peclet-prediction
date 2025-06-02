@@ -1,0 +1,50 @@
+#+title: Training Notebook
+#+author: Jo Martin
+
+* Training Neural Networks to Infer the Peclet Number of Model Runs
+This notebook trains two convolutional neural networks to infer the Peclet number
+of 2D streampower-diffusion landscape evolution models.  The purpose of this notebook
+is to make it easy to replicate the work done in this project in Google Colab
+
+#+BEGIN_SRC jupyter-python
+!git clone https://github.com/jrymart/peclet-prediction.git
+import os
+os.chdir('peclet-prediction')
+#+END_SRC
+
+#+BEGIN_SRC jupyter-python :results output
+import torch
+from train_peclet_model import PecletModelTrainer
+from ThreeLayerCNNRegressor import ThreeLayerCNNRegressor
+import json
+import matplotlib.pyplot as plt
+#+END_SRC
+
+#+BEGIN_SRC jupyter-python :tangle "python.py"
+#with open('full_dataset_statistics.json', 'r') as f:
+#    stats = json.load(f)
+#+End_SRC
+
+#+BEGIN_SRC jupyter-python :results output
+torch.manual_seed(0)
+db_path = 'model_runs.db'
+data_path = 'model_run_topography'
+trainer_one = PecletModelTrainer(db_path,
+                                 data_path,
+                                 ThreeLayerCNNRegressor(channels=2),
+                                 "SELECT log_peclet FROM model_run_outputs",
+                                 epochs=50,
+                                 learning_rate=0.0001)
+
+trainer_one.train()
+#+END_SRC
+#+BEGIN_SRC jupyter-python :results output
+trainer_one.evaluate()
+trainer_one.save_weights('peclet_predictor_run_with_acc.pt')
+run_one_results, ax = plt.subplots()
+ax.scatter(trainer_one.test_df['true_labels'], trainer_one.test_df['predictions'])
+ax.set_xlabel('True Log Pe')
+ax.set_ylabel('Inferred Log Pe')
+ax.set_title('Performance of Model with Seed 0')
+run_one_resuts.savefig('run_with_acc_results.png')
+#+END_SRC
