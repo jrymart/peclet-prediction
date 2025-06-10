@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 #+END_SRC
 
 #+BEGIN_SRC jupyter-python :tangle "python.py"
-#with open('full_dataset_statistics.json', 'r') as f:
-#    stats = json.load(f)
+with open('dem_logflowacc_statistics.json', 'r') as f:
+    stats = json.load(f)
 #+End_SRC
 
 #+BEGIN_SRC jupyter-python :results output
@@ -34,7 +34,7 @@ trainer_one = PecletModelTrainer(db_path,
                                  ThreeLayerCNNRegressor(channels=2),
                                  "SELECT log_peclet FROM model_run_outputs",
                                  epochs=50,
-                                 learning_rate=0.0001)
+                                 learning_rate=0.0001, **stats)
 
 trainer_one.train()
 #+END_SRC

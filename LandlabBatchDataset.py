@@ -85,14 +85,16 @@ def get_dataset_stats(db_path, dataset_dir, filter_query="", trim=5):
     mean = sum / count
     variance = (sum_sq / count) - np.square(mean)
     handle_variance = np.any([variance < 0, np.isclose(variance, 0)])
-    if np.array(variance).ndim == 1 and handle_variance:
-        variance = 0
+    if np.array(variance).ndim == 1:
+        if handle_variance:
+            variance = 0
     else:
         variance[handle_variance] = 0
     std = np.sqrt(variance)
     handle_std = std < 1e-7
-    if np.array(std).ndim == 1 and handle_std:
-        std = 1
+    if np.array(std).ndim == 1:
+        if handle_std:
+            std = 1
         print("Warning: std is very small, setting to 1")
     else:
         std[handle_std] = 1
