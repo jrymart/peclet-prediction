@@ -1,0 +1,72 @@
+#+title: Data Statistics
+#+PROPERTY: header-args: :python /home/jo/micromamba/envs/torchland/bin/python :session statistics
+
+* Statistics
+To ensure our neural network performs well, we need to normalize the data to avoid gradients from becoming too large.  We also (for now) don't want to normalize each model topography indivudually, because differences in relief betwen runs might be important.  It would be interesting to see if the network could perform without this information but that's a project for another day.  It takes a lot of time to load all of the data so that we can calculate dataset wide statistics.  The dataloader can handle this, but lets do it once so we don't have to recalculate for every network training.
+
+#+begin_src python :results output
+import sqlite3
+import numpy as np
+import os
+import json
+
+data_path = "model_run_topography"
+db_path = "model_runs.db"
+split_by = "model_param.seed"
+connection = sqlite3.connect(db_path)
+cursor = connection.cursor()
+cursor.execute(f"SELECT DISTINCT \"{split_by}\" FROM model_run_params")
+categories = [r[0] for r in cursor.fetchall()]
+train_fraction = 0.8
+split = int((len(categories) * train_fraction))
+train_categories = categories[:split]
+train_filter = f"WHERE \"{split_by}\" IN ({', '.join([str(c) for c in train_categories])})"
+cursor.execute(f"SELECT model_run_id FROM model_run_params {train_filter}")
+runs = [r[0] for r in cursor.fetchall()]
+input_total_sum = 0.0
+input_total_sum_sq = 0.0
+input_total_count = 0
+for run in runs:
+    data_array = np.load(os.path.join(data_path, f"{run}.npy"))[5:-5,5:-5]
+    input_total_sum += np.sum(data_array)
+    input_total_sum_sq += np.sum(np.square(data_array))
+    input_total_count += data_array.size
+inputs_mean = input_total_sum / input_total_count
+variance = (input_total_sum_sq / input_total_count) - np.square(inputs_mean)
+if variance < 0 and np.isclose(variance, 0):
+    variance = 0.0
+inputs_std = np.sqrt(variance)
+if inputs_std < 1e-7:
+    print("Warning: inputs_std is very small, setting to 1.0")
+    inputs_std = 1
+labels = []
+limit = connection.getlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER)
+for i in range(0, len(runs), limit):
+    current_chunk_runs = runs[i: i+limit]
+    placeholders = ', '.join(['?']*len(current_chunk_runs))
+    cursor.execute(f"SELECT log_peclet FROM model_run_outputs WHERE model_run_id IN ({placeholders})",current_chunk_runs)
+    current_labels = [l[0] for l in cursor.fetchall()]
+    labels += current_labels
+labels = np.array(labels, dtype=np.float64)
+labels_mean = np.mean(labels)
+labels_std = np.std(labels)
+if labels_std < 1e-7:
+    labels_std = 1.0
+stats = {'inputs_mean': inputs_mean,
+         'inputs_std': inputs_std,
+         'labels_mean': labels_mean,
+         'labels_std': labels_std}
+with open("full_dataset_statistics.json", 'w') as f:
+    json.dump(stats, f)
+print(f"Inputs Mean: {inputs_mean}")
+print(f"Inputs Std: {inputs_std}\n")
+print(f"Labels Mean: {labels_mean}")
+print(f"Labels Std: {labels_std}")
+#+end_src
+
+#+RESULTS:
+: Inputs Mean: 17.64353269333499
+: Inputs Std: 30.64808716508839
+:
+: Labels Mean: 7.288967318721593
+: Labels Std: 1.1873556332682709

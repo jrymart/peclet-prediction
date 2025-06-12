@@ -1,0 +1,53 @@
+#+title: Seperate Flowacc
+#+property: header-args:python :python /home/jo/micromamba/envs/torchland/bin/python :session flowacc
+
+#+begin_src python :results output
+print("hello")
+#+end_src
+
+#+RESULTS:
+: hello
+
+#+begin_src python :results file :exports both
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+
+data_path = "../peclet_batch_one_flowacc"
+files = os.listdir(data_path)
+inc=10
+fig, axs = plt.subplots(3, 3, figsize=(6, 13))
+for i, ax_row in enumerate(axs):
+    data = np.load(os.path.join(data_path, files[i*inc]))
+    dem = ax_row[0].imshow(data[0], cmap='viridis')
+    acc = ax_row[1].imshow(data[1], cmap='gray')
+    logacc = ax_row[2].imshow(np.log(data[1]), cmap='gray')
+    fig.colorbar(dem, ax=ax_row[0], orientation='vertical')
+    fig.colorbar(acc, ax=ax_row[1], orientation='vertical')
+    fig.colorbar(logacc, ax=ax_row[2], orientation='vertical')
+axs[0, 0].set_title('Topography')
+axs[0, 1].set_title('Flow Accumulation')
+axs[0, 2].set_title('Log Flow Accumulation')
+fig.tight_layout()
+fig.savefig("figs/flowacc_viz.png")
+'figs/flowacc_viz.png'
+#+end_src
+
+#+RESULTS:
+[[file:figs/flowacc_viz.png]]
+
+#+begin_src python :results output
+out_data_path = "../model_run_flowacc"
+try:
+    os.mkdir(out_data_path)
+except FileExistsError:
+    print("Output directory already exists, using existing directory.")
+    pass
+for file in files:
+    data = np.load(os.path.join(data_path, file))
+    flow_accumulation = data[1]
+    out_file = os.path.join(out_data_path, file)
+    np.save(out_file, flow_accumulation)
+#+end_src
+
+#+RESULTS:
