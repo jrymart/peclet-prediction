@@ -1,0 +1,51 @@
+#+title: Training Notebook
+#+author: Jo Martin
+
+* Training Neural Networks to Infer the Peclet Number of Model Runs
+This notebook trains two convolutional neural networks to infer the Peclet number
+of 2D streampower-diffusion landscape evolution models.  The purpose of this notebook
+is to make it easy to replicate the work done in this project in Google Colab
+
+#+BEGIN_SRC jupyter-python
+!git clone https://github.com/jrymart/peclet-prediction.git
+import os
+os.chdir('peclet-prediction')
+#+END_SRC
+
+#+BEGIN_SRC jupyter-python :results output
+import torch
+from train_peclet_model import PecletModelTrainer
+from SpatialScaleCNNRegressor import SpatialScaleCNNRegressor
+import json
+import matplotlib.pyplot as plt
+from sklearn.metrics import root_mean_squared_error as rmse
+#+END_SRC
+
+#+BEGIN_SRC jupyter-python :tangle "python.py"
+with open('full_dataset_statistics.json', 'r') as f:
+    stats = json.load(f)
+#+End_SRC
+
+#+BEGIN_SRC jupyter-python :results output
+scales = np.arange(3,10)
+trainers = [PecletModelTrainer(db_path,
+                               data_path,
+                               SpatialScaleCNNRegressor([s for s in scales if s !=i]),
+                               "SELECT log_peclet FROM model_run_outputs",
+                               epochs=50,
+                               learning_rate=0.0001, **stats) for i in scales]
+#+END_SRC
+#+BEGIN_SRC jupyter-python :results output
+for trainer in trainers:
+        trainer.train()
+        trainer.evaluate()
+        trainer.save_weights(f'spatial_run_3-10_no_{i}.pt')
+#+END_SRC
+#+BEGIN_SRC jupyter-python :results output
+RMSEs = [rmse(trainer.test_df['true_labels'], trainer.test_df['predictions']) for trainer in trainers]
+fig, ax = plt.subplots()
+for i, s in enumerate(scales):
+    trainer = trainers[i]
+    ax.scatter(trainer.test_df['true_labels'], trainer.test_df['predictions'],
+    s=1, alpha=0.5, label=f'Trained without scale {s} (RMSE {RMSEs[i]:.2f})')
+#+END_SRC
