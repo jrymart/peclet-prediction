@@ -35,7 +35,7 @@ ax12.hist(np.exp(just_dem['true_labels']), bins=100, alpha=0.3, color='gray')
 axs[0].set_title('Elevation Data as Log Pe Predictor')
 axs[1].set_title('Elevation Data as Pe Predictor')
 fig.tight_layout()
-fig.savefig("figs/dem_Pe_results.png")
+fig.savefig("figs/dem_Pe_results.png",dpi=300)
 'figs/dem_Pe_results.png'
 #+end_src
 
@@ -51,13 +51,13 @@ axs[1].scatter(np.exp(dem_acc['true_labels']), np.exp(dem_acc['predictions']), s
 axs[0].plot([min, max], [min, max], color='red', linestyle='--')
 axs[1].plot(np.exp([min, max]), np.exp([min, max]), color='red', linestyle='--')
 axs[0].legend()
-axs[1].legend()
+#axs[1].legend()
 ax02 = axs[0].twinx()
 ax02.hist(just_dem['true_labels'], bins=100, alpha=0.3, color='gray')
 ax12 = axs[1].twinx()
 ax12.hist(np.exp(just_dem['true_labels']), bins=100, alpha=0.3, color='gray')
 axs[0].set_title('Elevation Data as Log Pe Predictor')
-#axs[1].set_title('Elevation Data as Pe Predictor')
+axs[1].set_title('Elevation Data as Pe Predictor')
 fig.tight_layout()
 fig.savefig("figs/dem_acc_Pe_results.png")
 'figs/dem_acc_Pe_results.png'
@@ -68,17 +68,49 @@ fig.savefig("figs/dem_acc_Pe_results.png")
 
 #+begin_src python :results file :exports both
 fig, axs = plt.subplots(1,2, figsize=(10, 5))
-axs[0].scatter(dem_dem['true_labels'], dem_dem['predictions'], s=1, alpha=0.5, label='Elevation Inputs')
+axs[0].scatter(dem_dem['true_labels'], dem_dem['predictions'], s=1, alpha=0.5, label='Double Elevation Inputs')
 axs[0].scatter(dem_acc['true_labels'], dem_acc['predictions'], s=1, alpha=0.5, label='Elevation + Flow Acc Inputs')
-axs[1].scatter(np.exp(dem_dem['true_labels']), np.exp(dem_dem['predictions']), s=1, alpha=0.5, label='Elevation Inputs')
+axs[1].scatter(np.exp(dem_dem['true_labels']), np.exp(dem_dem['predictions']), s=1, alpha=0.5, label='Double Elevation Inputs')
 axs[1].scatter(np.exp(dem_acc['true_labels']), np.exp(dem_acc['predictions']), s=1, alpha=0.5, label='Elevation + Flow Acc Inputs')
 axs[0].plot([min, max], [min, max], color='red', linestyle='--')
 axs[1].plot(np.exp([min, max]), np.exp([min, max]), color='red', linestyle='--')
 axs[0].legend()
-axs[1].legend()
+#axs[1].legend()
 ax02 = axs[0].twinx()
 ax02.hist(just_dem['true_labels'], bins=100, alpha=0.3, color='gray')
 ax12 = axs[1].twinx()
 ax12.hist(np.exp(just_dem['true_labels']), bins=100, alpha=0.3, color='gray')
-axs[0].set_title('Elevation Data as Log Pe Predictor')
+axs[0].set_title('Elevation and Accumulation Data as Log Pe Predictor')
+axs[1].set_title('Elevation and Accumulation Data as Pe Predictor')
+fig.tight_layout()
+fig.savefig("figs/dem_dem_dem_acc_Pe_results.png")
+'figs/dem_dem_dem_acc_Pe_results.png'
 #+end_src
+
+#+RESULTS:
+[[file:figs/dem_dem_dem_acc_Pe_results.png]]
+
+#+begin_src python :results file :exports both
+fig, axs = plt.subplots(1,2, figsize=(10, 5))
+axs[0].scatter(just_dem['true_labels'], just_dem['predictions'], s=1, alpha=0.5, label='Elevation Inputs')
+axs[0].scatter(just_acc['true_labels'], just_acc['predictions'], s=1, alpha=0.5, label='Flow Acc Inputs')
+axs[1].scatter(np.exp(just_dem['true_labels']), np.exp(just_dem['predictions']), s=1, alpha=0.5, label='Elevation Inputs')
+axs[1].scatter(np.exp(just_acc['true_labels']), np.exp(just_acc['predictions']), s=1, alpha=0.5, label='Flow Acc Inputs')
+axs[0].plot([min, max], [min, max], color='red', linestyle='--')
+axs[1].plot(np.exp([min, max]), np.exp([min, max]), color='red', linestyle='--')
+axs[0].legend()
+#axs[1].legend()
+ax02 = axs[0].twinx()
+ax02.hist(just_dem['true_labels'], bins=100, alpha=0.3, color='gray')
+ax12 = axs[1].twinx()
+ax12.hist(np.exp(just_dem['true_labels']), bins=100, alpha=0.3, color='gray')
+axs[0].set_title('Elevation and Accumulation Data as Log Pe Predictor')
+axs[1].set_title('Elevation and Accumulation Data as Pe Predictor')
+#axs[1].set_title('Elevation Data as Pe Predictor')
+fig.tight_layout()
+fig.savefig("figs/just_dem_acc_Pe_results.png")
+'figs/just_dem_acc_Pe_results.png'
+#+end_src
+
+#+RESULTS:
+[[file:figs/just_dem_acc_Pe_results.png]]

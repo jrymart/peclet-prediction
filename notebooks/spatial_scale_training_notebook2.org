@@ -27,7 +27,7 @@ with open('full_dataset_statistics.json', 'r') as f:
 #+End_SRC
 
 #+BEGIN_SRC jupyter-python :results output
-scales = [3,5,7,9,10]
+scales = np.arange(3,10)
 trainers = [PecletModelTrainer(db_path,
                                data_path,
                                SpatialScaleCNNRegressor([s for s in scales if s !=i]),
